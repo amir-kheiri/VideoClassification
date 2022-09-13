@@ -1,48 +1,4 @@
-"""
-Title: Video Classification with Transformers
-Author: [Sayak Paul](https://twitter.com/RisingSayak)
-Date created: 2021/06/08
-Last modified: 2021/06/08
-Description: Training a video classifier with hybrid transformers.
-"""
-"""
-This example is a follow-up to the
-[Video Classification with a CNN-RNN Architecture](https://keras.io/examples/vision/video_classification/)
-example. This time, we will be using a Transformer-based model
-([Vaswani et al.](https://arxiv.org/abs/1706.03762)) to classify videos. You can follow
-[this book chapter](https://livebook.manning.com/book/deep-learning-with-python-second-edition/chapter-11)
-in case you need an introduction to Transformers (with code). After reading this
-example, you will know how to develop hybrid Transformer-based models for video
-classification that operate on CNN feature maps.
 
-This example requires TensorFlow 2.5 or higher, as well as TensorFlow Docs, which can be
-installed using the following command:
-"""
-
-"""shell
-pip install -q git+https://github.com/tensorflow/docs
-"""
-
-"""
-## Data collection
-
-As done in the [predecessor](https://keras.io/examples/vision/video_classification/) to
-this example, we will be using a subsampled version of the
-[UCF101 dataset](https://www.crcv.ucf.edu/data/UCF101.php),
-a well-known benchmark dataset. In case you want to operate on a larger subsample or
-even the entire dataset, please refer to
-[this notebook]
-(https://colab.research.google.com/github/sayakpaul/Action-Recognition-in-TensorFlow/blob/main/Data_Preparation_UCF101.ipynb).
-"""
-
-"""shell
-wget -q https://git.io/JGc31 -O ucf101_top5.tar.gz
-tar xf ucf101_top5.tar.gz
-"""
-
-"""
-## Setup
-"""
 import sys 
 sys.path
 #from tensorflow_docs.vis import embed
@@ -73,19 +29,12 @@ EPOCHS = 15
 """
 ## Data preparation
 
-We will mostly be following the same data preparation steps in this example, except for
-the following changes:
 
-* We reduce the image size to 128x128 instead of 224x224 to speed up computation.
-* Instead of using a pre-trained [InceptionV3](https://arxiv.org/abs/1512.00567) network,
-we use a pre-trained
-[DenseNet121]
-(http://openaccess.thecvf.com/content_cvpr_2017/papers/Huang_Densely_Connected_Convolutional_CVPR_2017_paper.pdf)
+*  We reduce the image size to 128x128 instead of 224x224 to speed up computation.
+
 for feature extraction.
 * We directly pad shorter videos to length `MAX_SEQ_LENGTH`.
 
-First, let's load up the
-[DataFrames](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html).
 """
 
 train_df = pd.read_csv("E:\\Machine Learning\\Keras_Project\\VideoClassificationwithTransformers\\train.csv")
@@ -102,9 +51,6 @@ def crop_center(frame):
     cropped = cropped.numpy().squeeze()
     return cropped
 
-
-# Following method is modified from this tutorial:
-# https://www.tensorflow.org/hub/tutorials/action_recognition_with_tf_hub
 
 def load_video(path, max_frames=0):
     cap = cv2.VideoCapture(path)
@@ -161,6 +107,7 @@ feature_extractor = build_feature_extractor()
 
 
 # Label preprocessing with StringLookup.
+
 label_processor = keras.layers.StringLookup(
     num_oov_indices=0, vocabulary=np.unique(train_df["tag"]), mask_token=None
 )
@@ -214,16 +161,6 @@ def prepare_all_videos(df, root_dir):
     return frame_features, labels
 
 
-"""
-Calling `prepare_all_videos()` on `train_df` and `test_df` takes ~20 minutes to
-complete. For this reason, to save time, here we download already preprocessed NumPy arrays:
-"""
-
-"""shell
-wget -q https://git.io/JZmf4 -O top5_data_prepared.tar.gz
-tar xf top5_data_prepared.tar.gz
-"""
-
 
 train_data  = np.load("E:/Machine Learning/Keras_Project/VideoClassificationwithTransformers/train_data.npy")
 train_labels= np.load("E:/Machine Learning/keras_Project/VideoClassificationwithTransformers/train_labels.npy")
@@ -232,22 +169,6 @@ test_labels = np.load("E:/Machine Learning/Keras_Project/VideoClassificationwith
 
 print(f"Frame features in train set: {train_data.shape}")
 
-"""
-## Building the Transformer-based model
-
-We will be building on top of the code shared in
-[this book chapter](https://livebook.manning.com/book/deep-learning-with-python-second-edition/chapter-11) of
-[Deep Learning with Python (Second ed.)](https://www.manning.com/books/deep-learning-with-python)
-by François Chollet.
-
-First, self-attention layers that form the basic blocks of a Transformer are
-order-agnostic. Since videos are ordered sequences of frames, we need our
-Transformer model to take into account order information.
-We do this via **positional encoding**.
-We simply embed the positions of the frames present inside videos with an
-[`Embedding` layer](https://keras.io/api/layers/core_layers/embedding). We then
-add these positional embeddings to the precomputed CNN feature maps.
-"""
 
 
 class PositionalEmbedding(layers.Layer):
@@ -272,7 +193,7 @@ class PositionalEmbedding(layers.Layer):
 
 
 """
-Now, we can create a subclassed layer for the Transformer.
+we can create a subclassed layer for the Transformer.
 """
 
 
@@ -357,11 +278,6 @@ def run_experiment():
 
 trained_model = run_experiment()
 
-"""
-**Note**: This model has ~4.23 Million parameters, which is way more than the sequence
-model (99918 parameters) we used in the prequel of this example.  This kind of
-Transformer model works best with a larger dataset and a longer pre-training schedule.
-"""
 
 
 def prepare_single_video(frames):
@@ -417,8 +333,3 @@ test_video = np.random.choice(test_df["video_name"].values.tolist())
 print(f"Test video path: {test_video}")
 test_frames = predict_action(test_video)
 #to_gif(test_frames[:MAX_SEQ_LENGTH])
-
-"""
-The performance of our model is far from optimal, because it was trained on a
-small dataset.
-"""
